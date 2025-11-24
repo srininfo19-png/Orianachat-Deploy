@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oriana Assistant</title>
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Marked.js for Markdown Parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        :root {
+            --primary-gradient: linear-gradient(135deg, #5b7cfa 0%, #8e44ad 100%);
+            --card-bg: #f4f6f8;
+            --text-color: #333;
+            --sub-text: #666;
+            --accent-color: #5c7cfa; /* Blueish purple */
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: #766ee6; 
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .phone-container {
+            width: 100%;
+            max-width: 480px;
+            height: 85vh;
+            max-height: 800px;
+            background: #fff;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* --- Header Section --- */
+        .chat-header {
+            background: linear-gradient(90deg, #5b7cfa 0%, #9b59b6 100%);
+            padding: 20px;
+            text-align: center;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .brand-title {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            font-size: 1.4rem;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .star-icon {
+            color: #ffd700;
+            font-size: 1.2rem;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.2);
+        }
+
+        .brand-subtitle {
+            font-size: 0.9rem;
+            opacity: 0.95;
+            font-weight: 400;
+        }
+
+        /* --- Status Bar --- */
+        .status-bar {
+            background: white;
+            color: #888;
+            text-align: center;
+            padding: 8px;
+            font-size: 0.85rem;
+            border-bottom: 1px solid #eee;
+            flex-shrink: 0;
+            transition: color 0.3s;
+        }
+
+        /* --- Chat Area --- */
+        .chat-messages {
+            flex: 1;
+            background: #f8f9fa;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            max-width: 85%;
+            padding: 15px;
+            border-radius: 15px;
+            font-size: 0.95rem;
+            line-height: 1.5;
+            position: relative;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+            animation: fadeIn 0.3s ease;
+            word-wrap: break-word;
+        }
+
+        /* Styles for Markdown in Bot Messages */
+        .message ul, .message ol {
+            margin-left: 20px;
+            margin-top: 5px;
+            margin-bottom: 10px;
+        }
+        
+        .message li {
+            margin-bottom: 4px;
+        }
+        
+        .message p {
+            margin-bottom: 8px;
+        }
+        
+        .message p:last-child {
+            margin-bottom: 0;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .bot-message {
+            background: white;
+            color: #444;
+            border-top-left-radius: 2px;
+            align-self: flex-start;
+        }
+
+        .user-message {
+            background: #5b7cfa; /* Blue accent */
+            color: white;
+            border-top-right-radius: 2px;
+            align-self: flex-end;
+        }
+
+        .msg-icon {
+            display: inline-block;
+            margin-left: 8px;
+            color: #aaa;
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+        
+        .bot-message .msg-icon {
+             /* Make icon visible inside white bubble */
+            color: #5b7cfa;
+        }
+        
+        .bot-message .msg-icon:hover {
+            color: #9b59b6;
+        }
+        
+        .bot-message .msg-icon.playing {
+            color: red;
+        }
+
+
+        /* Typing Indicator */
+        .typing-indicator {
+            display: flex;
+            gap: 5px;
+            padding: 10px 15px;
+            background: white;
+            border-radius: 15px;
+            width: fit-content;
+            border-top-left-radius: 2px;
+            margin-bottom: 10px;
+            display: none; /* Hidden by default */
+        }
+        .dot {
+            width: 8px;
+            height: 8px;
+            background: #ccc;
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out both;
+        }
+        .dot:nth-child(1) { animation-delay: -0.32s; }
+        .dot:nth-child(2) { animation-delay: -0.16s; }
+        
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        /* --- Footer / Input --- */
+        .chat-input-area {
+            background: white;
+            padding: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-top: 1px solid #eee;
+            flex-shrink: 0;
+        }
+
+        .action-btn {
+            width: 45px;
+            height: 45px;
+            border-radius: 50%;
+            border: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: transform 0.2s;
+            flex-shrink: 0;
+        }
+
+        .action-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .mic-btn, .send-btn {
+            background: #6c8cff;
+            color: white;
+            font-size: 1.2rem;
+        }
+        
+        .mic-btn:disabled, .send-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .input-field {
+            flex: 1;
+            padding: 12px 20px;
+            border: 1px solid #ddd;
+            border-radius: 25px;
+            outline: none;
+            font-size: 1rem;
+            color: #555;
+            background: #fff;
+        }
+
+        .input-field::placeholder {
+            color: #aaa;
+        }
+
+        .input-field:focus {
+            border-color: #6c8cff;
+        }
+
+        /* Scrollbar styling */
+        .chat-messages::-webkit-scrollbar {
+            width: 6px;
+        }
+        .chat-messages::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 3px;
+        }
+
+        @media (max-width: 480px) {
+            .phone-container {
+                height: 100vh;
+                border-radius: 0;
+                max-height: none;
+            }
+            body {
+                padding: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="phone-container">
+        <!-- Header -->
+        <div class="chat-header">
+            <div class="brand-title">
+                <i class="fas fa-star star-icon"></i>
+                <span>Oriana Assistant</span>
+            </div>
+            <div class="brand-subtitle">
+                GRT Jewels - Multilingual Voice Support
+            </div>
+        </div>
+
+        <!-- Status Bar -->
+        <div class="status-bar" id="statusBar">
+            Ready to help you!
+        </div>
+
+        <!-- Chat Area -->
+        <div class="chat-messages" id="chatMessages">
+            <!-- Initial Bot Message -->
+            <div class="message bot-message">
+                Hello! I am the Oriana assistant from GRT Jewels. I can help you with questions about Oriana products and brand. How can I assist you today? 
+                <i class="fas fa-volume-up msg-icon" title="Listen"></i>
+            </div>
+            
+            <!-- Typing Indicator (Hidden initially) -->
+            <div class="typing-indicator" id="typingIndicator">
+                <div class="dot"></div>
+                <div class="dot"></div>
+                <div class="dot"></div>
+            </div>
+        </div>
+
+        <!-- Input Area -->
+        <div class="chat-input-area">
+            <button class="action-btn mic-btn" title="Speak" id="micBtn">
+                <i class="fas fa-microphone"></i>
+            </button>
+            <input type="text" class="input-field" id="userInput" placeholder="Type or speak your question..." autocomplete="off">
+            <button class="action-btn send-btn" id="sendBtn" title="Send">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        const chatMessages = document.getElementById('chatMessages');
+        const userInput = document.getElementById('userInput');
+        const sendBtn = document.getElementById('sendBtn');
+        const micBtn = document.getElementById('micBtn');
+        const typingIndicator = document.getElementById('typingIndicator');
+        const statusBar = document.getElementById('statusBar');
+
+        // TTS and LLM API Configuration
+        const WEBHOOK_URL = 'https://srini19info.app.n8n.cloud/webhook/09383383-9de3-4826-84a7-30c6d9479b6d/chat';
+        const TTS_API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-tts:generateContent?key=`;
+        const VOICE_NAME = "Kore"; // Choose a clear voice
+
+        // Generate a random session ID to maintain context (used by n8n)
+        let sessionId = localStorage.getItem('oriana_session_id');
+        if (!sessionId) {
+            sessionId = 'session-' + Math.random().toString(36).substr(2, 9);
+            localStorage.setItem('oriana_session_id', sessionId);
+        }
+
+        function scrollToBottom() {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
+
+        // Utility function to convert base64 to ArrayBuffer
+        function base64ToArrayBuffer(base64) {
+            const binaryString = atob(base64);
+            const len = binaryString.length;
+            const bytes = new Uint8Array(len);
+            for (let i = 0; i < len; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+            }
+            return bytes.buffer;
+        }
+
+        // Utility function to convert PCM data (signed 16-bit) to a WAV blob
+        function pcmToWav(pcm16, sampleRate) {
+            const buffer = new ArrayBuffer(44 + pcm16.length * 2);
+            const view = new DataView(buffer);
+            
+            // RIFF chunk descriptor
+            writeString(view, 0, 'RIFF');
+            view.setUint32(4, 36 + pcm16.length * 2, true);
+            writeString(view, 8, 'WAVE');
+            
+            // FMT chunk
+            writeString(view, 12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true); // Type: PCM
+            view.setUint16(22, 1, true); // Channels: Mono
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * 2, true); // Byte rate
+            view.setUint16(32, 2, true); // Block align
+            view.setUint16(34, 16, true); // Bits per sample
+            
+            // DATA chunk
+            writeString(view, 36, 'data');
+            view.setUint32(40, pcm16.length * 2, true);
+            
+            // Write PCM data
+            let offset = 44;
+            for (let i = 0; i < pcm16.length; i++) {
+                view.setInt16(offset, pcm16[i], true);
+                offset += 2;
+            }
+
+            return new Blob([view], { type: 'audio/wav' });
+        }
+
+        function writeString(view, offset, string) {
+            for (let i = 0; i < string.length; i++) {
+                view.setUint8(offset + i, string.charCodeAt(i));
+            }
+        }
+        
+        // Function to handle the Text-to-Speech API call and playback
+        async function playTts(text, iconElement) {
+            iconElement.classList.add('playing');
+            iconElement.title = 'Speaking...';
+            
+            try {
+                const payload = {
+                    contents: [{ parts: [{ text: text }] }],
+                    generationConfig: {
+                        responseModalities: ["AUDIO"],
+                        speechConfig: {
+                            voiceConfig: {
+                                prebuiltVoiceConfig: { voiceName: VOICE_NAME }
+                            }
+                        }
+                    },
+                    model: "gemini-2.5-flash-preview-tts"
+                };
+
+                const response = await fetch(TTS_API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                     throw new Error(`TTS server error: ${response.status}`);
+                }
+
+                const result = await response.json();
+                const part = result?.candidates?.[0]?.content?.parts?.[0];
+                const audioData = part?.inlineData?.data;
+                const mimeType = part?.inlineData?.mimeType;
+
+                if (audioData && mimeType && mimeType.startsWith("audio/L16")) {
+                    // Extract sample rate from the mimetype string (e.g., audio/L16;rate=24000)
+                    const rateMatch = mimeType.match(/rate=(\d+)/);
+                    const sampleRate = rateMatch ? parseInt(rateMatch[1], 10) : 24000;
+                    
+                    const pcmData = base64ToArrayBuffer(audioData);
+                    // API returns signed PCM16 audio data.
+                    const pcm16 = new Int16Array(pcmData);
+                    const wavBlob = pcmToWav(pcm16, sampleRate);
+                    const audioUrl = URL.createObjectURL(wavBlob);
+                    
+                    const audio = new Audio(audioUrl);
+                    audio.play();
+
+                    audio.onended = () => {
+                        iconElement.classList.remove('playing');
+                        iconElement.title = 'Listen';
+                        URL.revokeObjectURL(audioUrl);
+                    };
+                    
+                    audio.onerror = (e) => {
+                        console.error("Audio playback error:", e);
+                        iconElement.classList.remove('playing');
+                        iconElement.title = 'Listen';
+                    };
+                } else {
+                    console.error("TTS response missing audio data or invalid mime type:", mimeType);
+                }
+
+            } catch (error) {
+                console.error("Error generating or playing TTS:", error);
+                // Status update for error, but keep chat functional
+                statusBar.textContent = "TTS Error: Cannot speak.";
+            } finally {
+                // If it fails before playing, reset the icon state
+                if (!iconElement.classList.contains('playing')) {
+                    iconElement.classList.remove('playing');
+                    iconElement.title = 'Listen';
+                }
+            }
+        }
+
+
+        // Function to add a message to the chat
+        function addMessage(text, isUser = false) {
+            const msgDiv = document.createElement('div');
+            msgDiv.className = `message ${isUser ? 'user-message' : 'bot-message'}`;
+            
+            if (isUser) {
+                msgDiv.textContent = text;
+            } else {
+                // For bot, convert Markdown to HTML
+                try {
+                    msgDiv.innerHTML = marked.parse(text);
+                } catch (e) {
+                    console.error("Markdown parsing failed", e);
+                    msgDiv.textContent = text;
+                }
+                
+                // Add speaker icon
+                const icon = document.createElement('i');
+                icon.className = 'fas fa-volume-up msg-icon';
+                
+                // Get clean text for TTS (strip HTML tags)
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = msgDiv.innerHTML;
+                // Exclude the icon text itself from being read
+                const cleanText = (tempDiv.textContent || tempDiv.innerText || "").replace("Listen", "").trim(); 
+                
+                icon.onclick = () => {
+                    if (icon.classList.contains('playing')) return; // Prevent double click
+                    playTts(cleanText, icon);
+                };
+                
+                // Append the icon to the bot message content
+                msgDiv.appendChild(icon);
+            }
+            
+            // Insert before typing indicator
+            chatMessages.insertBefore(msgDiv, typingIndicator);
+            scrollToBottom();
+        }
+
+        function showTyping(show) {
+            typingIndicator.style.display = show ? 'flex' : 'none';
+            if(show) scrollToBottom();
+        }
+        
+        function setUIState(isLoading) {
+            userInput.disabled = isLoading;
+            sendBtn.disabled = isLoading || userInput.value.trim() === "";
+            micBtn.disabled = isLoading;
+            showTyping(isLoading);
+            statusBar.textContent = isLoading ? "Oriana is thinking..." : "Ready to help you!";
+        }
+
+        // Handle sending
+        async function handleSend() {
+            const text = userInput.value.trim();
+            if (text === "") return;
+
+            // 1. UI Updates
+            addMessage(text, true);
+            userInput.value = "";
+            setUIState(true);
+
+            try {
+                // 2. Send to n8n Backend
+                const payload = {
+                    action: "sendMessage",
+                    sessionId: sessionId,
+                    chatInput: text
+                };
+
+                const response = await fetch(WEBHOOK_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json'
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Server error: ${response.status}`);
+                }
+
+                // 3. Handle Response
+                const data = await response.json();
+                
+                let botResponse = "I received your message, but the response format was unclear. Check the console for details.";
+                
+                if (data.output) {
+                    botResponse = data.output;
+                } else if (data.text) {
+                    botResponse = data.text;
+                } else if (typeof data === 'string') {
+                    botResponse = data;
+                } else {
+                    console.log("Unknown response format:", data);
+                }
+
+                addMessage(botResponse, false);
+                statusBar.textContent = "Ready to help you!";
+
+            } catch (error) {
+                console.error("Error sending message:", error);
+                addMessage("Sorry, I'm having trouble connecting to the server or the n8n webhook right now. Please check the network and try again.", false);
+                statusBar.textContent = "Connection Error";
+            } finally {
+                // 4. Reset UI
+                setUIState(false);
+                userInput.focus();
+            }
+        }
+
+        // Event Listeners
+        sendBtn.addEventListener('click', handleSend);
+        userInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && !sendBtn.disabled) handleSend();
+        });
+        userInput.addEventListener('input', () => {
+            sendBtn.disabled = userInput.value.trim() === "" || userInput.disabled;
+        });
+
+        // Mic Button Simulation (removed alert)
+        micBtn.addEventListener('click', () => {
+            statusBar.textContent = "Mic activated! Please speak now...";
+            setTimeout(() => {
+                statusBar.textContent = "Ready to help you!";
+            }, 3000);
+        });
+        
+        // Initial setup for send button state
+        sendBtn.disabled = true; 
+
+    </script>
+</body>
+</html>
